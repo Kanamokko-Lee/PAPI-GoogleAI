@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>PAPI Glide Path Simulator v2.2</title>
+  <title>PAPI Glide Path Simulator v2.3</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&display=swap');
@@ -38,7 +38,7 @@
     <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-lg">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 8v8"/></svg>
     </div>
-    <h1 class="text-lg font-black tracking-tighter uppercase">PAPI Analyzer <span class="text-indigo-400">v2.2</span></h1>
+    <h1 class="text-lg font-black tracking-tighter uppercase">PAPI Analyzer <span class="text-indigo-400">v2.3</span></h1>
   </div>
   <div id="temp-dev-badge" class="px-4 py-1.5 rounded-lg font-black text-sm border border-emerald-800/50 bg-emerald-950/30 text-emerald-400">Δ+0.0°C (ISA)</div>
 </header>
@@ -72,14 +72,14 @@
           <div class="space-y-1.5">
             <div class="text-[15px] font-black text-indigo-400 uppercase tracking-tighter text-center">ON 3.25° PATH</div>
             <div class="flex gap-2 justify-center" id="papi-325-container"></div>
-            <div id="label-325" class="text-[8px] font-black text-center py-0.5 rounded-full border bg-slate-950">---</div>
+            <div id="label-325" class="text-[7px] font-black text-center py-0.5 rounded-full border bg-slate-950">---</div>
           </div>
           <div class="border-t border-slate-800"></div>
           <!-- 3.02° View -->
           <div class="space-y-1.5">
             <div class="text-[15px] font-black text-emerald-400 uppercase tracking-tighter text-center">ON 3.02° PATH</div>
             <div class="flex gap-2 justify-center" id="papi-302-container"></div>
-            <div id="label-302" class="text-[8px] font-black text-center py-0.5 rounded-full border bg-slate-950">---</div>
+            <div id="label-302" class="text-[7px] font-black text-center py-0.5 rounded-full border bg-slate-950">---</div>
           </div>
         </div>
       </div>
@@ -126,7 +126,7 @@
         <input type="range" id="temp-slider" min="-20" max="45" step="1" value="15" class="w-full" />
       </div>
 
-      <!-- PAPI Mode Switch (横並び・巨大化) -->
+      <!-- PAPI Mode Switch -->
       <div class="space-y-3">
         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">PAPI Spec</label>
         <div class="flex flex-row gap-2">
@@ -238,6 +238,7 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
     return { x: OX + distPx, y: OY - Math.tan(rad) * distPx - visualOffset };
   };
 
+  // 適正経路エリア
   const p1 = getCoords(bounds[1], 5);
   const p2 = getCoords(bounds[2], 5);
   const area = document.createElementNS(ns, "polygon");
@@ -245,11 +246,13 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
   area.setAttribute("fill", "rgba(16, 185, 129, 0.1)");
   svg.appendChild(area);
 
+  // 地面
   const ground = document.createElementNS(ns, "rect");
   ground.setAttribute("x", 0); ground.setAttribute("y", OY); ground.setAttribute("width", W); ground.setAttribute("height", H-OY);
   ground.setAttribute("fill", "#070d19");
   svg.appendChild(ground);
 
+  // PAPIユニット
   const unit = document.createElementNS(ns, "rect");
   unit.setAttribute("x", OX-8); unit.setAttribute("y", OY-8); unit.setAttribute("width", 16); unit.setAttribute("height", 8);
   unit.setAttribute("fill", "#f1f5f9");
@@ -267,6 +270,31 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
     svg.appendChild(t);
   }
 
+  // 境界線 (背景・高コントラスト)
+  bounds.forEach(b => {
+    const p = getCoords(b, 5.2);
+    const ang = getAng(b);
+    
+    // ライン
+    const l = document.createElementNS(ns, "line");
+    l.setAttribute("x1", OX); l.setAttribute("y1", OY); l.setAttribute("x2", p.x); l.setAttribute("y2", p.y);
+    l.setAttribute("stroke", "#64748b"); // コントラストを上げた色
+    l.setAttribute("stroke-width", 1.0);
+    l.setAttribute("stroke-dasharray", "5,3");
+    svg.appendChild(l);
+
+    // 角度ラベル (先端に傾斜させて配置)
+    const t = document.createElementNS(ns, "text");
+    t.setAttribute("x", p.x + 5);
+    t.setAttribute("y", p.y);
+    t.setAttribute("fill", "#94a3b8");
+    t.setAttribute("font-size", "10");
+    t.setAttribute("transform", `rotate(${-ang}, ${p.x}, ${p.y})`);
+    t.textContent = `${b.toFixed(2)}°`;
+    svg.appendChild(t);
+  });
+
+  // 動的なパス描画関数 (色分け)
   const drawDynamicPath = (a, baseColor, isThick) => {
     const segments = 50;
     const maxNm = 5.2;
@@ -291,17 +319,11 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
     }
   };
 
-  bounds.forEach(b => {
-    const p = getCoords(b, 5.2);
-    const l = document.createElementNS(ns, "line");
-    l.setAttribute("x1", OX); l.setAttribute("y1", OY); l.setAttribute("x2", p.x); l.setAttribute("y2", p.y);
-    l.setAttribute("stroke", "#334155"); l.setAttribute("stroke-width", 0.8); l.setAttribute("stroke-dasharray", "5,3");
-    svg.appendChild(l);
-  });
-
+  // 実パスの描画 (3.25°=Indigo, 3.02°=Emerald)
   drawDynamicPath(t302, "#10b981", true);
   drawDynamicPath(t325, "#6366f1", true);
 
+  // 航空機アイコン
   const acPos = getCoords(t325, dNm);
   const eyePos = getCoords(t325, dNm, eh);
 
