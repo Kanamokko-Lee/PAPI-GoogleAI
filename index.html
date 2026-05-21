@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>PAPI Glide Path Simulator v2.1</title>
+  <title>PAPI Glide Path Simulator v2.2</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&display=swap');
@@ -38,7 +38,7 @@
     <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-lg">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 8v8"/></svg>
     </div>
-    <h1 class="text-lg font-black tracking-tighter uppercase">PAPI Analyzer <span class="text-indigo-400">v2.1</span></h1>
+    <h1 class="text-lg font-black tracking-tighter uppercase">PAPI Analyzer <span class="text-indigo-400">v2.2</span></h1>
   </div>
   <div id="temp-dev-badge" class="px-4 py-1.5 rounded-lg font-black text-sm border border-emerald-800/50 bg-emerald-950/30 text-emerald-400">Δ+0.0°C (ISA)</div>
 </header>
@@ -52,15 +52,15 @@
       <!-- STATS & PAPI Cockpit View (地面ライン OY=380 に接するように配置) -->
       <div class="absolute bottom-[15.6%] right-8 z-10 flex items-stretch gap-0 shadow-2xl">
         <!-- ALT STATS (左側セクション) -->
-        <div class="glass-effect border-r-0 rounded-r-none p-4 w-44 flex flex-col justify-between">
+        <div class="glass-effect border-r-0 rounded-r-none p-4 w-48 flex flex-col justify-between">
           <div>
-            <div class="text-[11px] font-black text-indigo-400 uppercase tracking-tighter">3.25° ALT</div>
+            <div class="text-[15px] font-black text-indigo-400 uppercase tracking-tighter">3.25° ALT</div>
             <div id="true-325" class="text-2xl font-black text-white leading-tight">---</div>
             <div id="diff-325" class="text-[10px] font-bold">±0 ft</div>
           </div>
           <div class="border-t border-slate-800 my-2"></div>
           <div>
-            <div class="text-[11px] font-black text-emerald-400 uppercase tracking-tighter">3.02° ALT</div>
+            <div class="text-[15px] font-black text-emerald-400 uppercase tracking-tighter">3.02° ALT</div>
             <div id="true-302" class="text-2xl font-black text-white leading-tight">---</div>
             <div id="diff-302" class="text-[10px] font-bold">±0 ft</div>
           </div>
@@ -126,12 +126,12 @@
         <input type="range" id="temp-slider" min="-20" max="45" step="1" value="15" class="w-full" />
       </div>
 
-      <!-- PAPI Mode Switch -->
-      <div class="space-y-2">
+      <!-- PAPI Mode Switch (横並び・巨大化) -->
+      <div class="space-y-3">
         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">PAPI Spec</label>
-        <div class="flex flex-col gap-2">
-          <button id="btn-general" onclick="setPapiMode('general')" class="w-full py-3 rounded-xl text-[10px] font-black border transition btn-inactive">STANDARD 3.00°</button>
-          <button id="btn-hnd" onclick="setPapiMode('hnd')" class="w-full py-3 rounded-xl text-[10px] font-black border transition btn-active-indigo">HANEDA 3.25°</button>
+        <div class="flex flex-row gap-2">
+          <button id="btn-general" onclick="setPapiMode('general')" class="flex-1 py-4 rounded-xl text-lg font-black border transition btn-inactive">3.00°</button>
+          <button id="btn-hnd" onclick="setPapiMode('hnd')" class="flex-1 py-4 rounded-xl text-lg font-black border transition btn-active-indigo">3.25°</button>
         </div>
       </div>
 
@@ -238,7 +238,6 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
     return { x: OX + distPx, y: OY - Math.tan(rad) * distPx - visualOffset };
   };
 
-  // 適正経路エリア
   const p1 = getCoords(bounds[1], 5);
   const p2 = getCoords(bounds[2], 5);
   const area = document.createElementNS(ns, "polygon");
@@ -246,13 +245,11 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
   area.setAttribute("fill", "rgba(16, 185, 129, 0.1)");
   svg.appendChild(area);
 
-  // 地面
   const ground = document.createElementNS(ns, "rect");
   ground.setAttribute("x", 0); ground.setAttribute("y", OY); ground.setAttribute("width", W); ground.setAttribute("height", H-OY);
   ground.setAttribute("fill", "#070d19");
   svg.appendChild(ground);
 
-  // PAPIユニット
   const unit = document.createElementNS(ns, "rect");
   unit.setAttribute("x", OX-8); unit.setAttribute("y", OY-8); unit.setAttribute("width", 16); unit.setAttribute("height", 8);
   unit.setAttribute("fill", "#f1f5f9");
@@ -270,7 +267,6 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
     svg.appendChild(t);
   }
 
-  // 動的なパス描画関数 (色分け)
   const drawDynamicPath = (a, baseColor, isThick) => {
     const segments = 50;
     const maxNm = 5.2;
@@ -281,9 +277,9 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
       const pStart = getCoords(a, nmStart);
       const pEnd = getCoords(a, nmEnd);
       
-      let color = baseColor; // 適正範囲内
-      if (a > bounds[1]) color = "#ffffff"; // 白 (高すぎ)
-      if (a < bounds[2]) color = "#ef4444"; // 赤 (低すぎ)
+      let color = baseColor;
+      if (a > bounds[1]) color = "#ffffff";
+      if (a < bounds[2]) color = "#ef4444";
       
       const l = document.createElementNS(ns, "line");
       l.setAttribute("x1", pStart.x); l.setAttribute("y1", pStart.y);
@@ -295,7 +291,6 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
     }
   };
 
-  // 境界線 (背景)
   bounds.forEach(b => {
     const p = getCoords(b, 5.2);
     const l = document.createElementNS(ns, "line");
@@ -304,11 +299,9 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
     svg.appendChild(l);
   });
 
-  // 実パスの描画 (3.25°=Indigo, 3.02°=Emerald)
   drawDynamicPath(t302, "#10b981", true);
   drawDynamicPath(t325, "#6366f1", true);
 
-  // 航空機アイコン
   const acPos = getCoords(t325, dNm);
   const eyePos = getCoords(t325, dNm, eh);
 
@@ -333,8 +326,8 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
 
 function setPapiMode(m) {
   state.papiMode = m;
-  document.getElementById('btn-general').className = `w-full py-3 rounded-xl text-[10px] font-black border transition ${m==='general'?'btn-active-indigo':'btn-inactive'}`;
-  document.getElementById('btn-hnd').className = `w-full py-3 rounded-xl text-[10px] font-black border transition ${m==='hnd'?'btn-active-indigo':'btn-inactive'}`;
+  document.getElementById('btn-general').className = `flex-1 py-4 rounded-xl text-lg font-black border transition ${m==='general'?'btn-active-indigo':'btn-inactive'}`;
+  document.getElementById('btn-hnd').className = `flex-1 py-4 rounded-xl text-lg font-black border transition ${m==='hnd'?'btn-active-indigo':'btn-inactive'}`;
   updateAll();
 }
 
