@@ -3,139 +3,148 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>PAPI Glide Path Simulator v1.6</title>
+  <title>PAPI Glide Path Simulator v1.7</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&display=swap');
     * { box-sizing: border-box; }
     body { font-family: 'JetBrains Mono', monospace; background: #0f172a; color: #e2e8f0; margin: 0; }
     
-    input[type=range] { -webkit-appearance: none; appearance: none; height: 10px; border-radius: 5px; background: #1e293b; outline: none; cursor: pointer; }
-    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #6366f1; cursor: pointer; border: 3px solid #fff; }
+    input[type=range] { -webkit-appearance: none; appearance: none; height: 8px; border-radius: 4px; background: #1e293b; outline: none; cursor: pointer; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #6366f1; cursor: pointer; border: 2px solid #fff; }
     
-    .papi-light-white { background: radial-gradient(circle at 40% 35%, #fff 10%, #f1f5f9 50%, #fef9c3 100%); box-shadow: 0 0 30px 10px rgba(255,255,255,0.8); border: 4px solid #475569; }
-    .papi-light-red   { background: radial-gradient(circle at 40% 35%, #fca5a5 10%, #ef4444 50%, #991b1b 100%); box-shadow: 0 0 25px 10px rgba(239,68,68,0.7); border: 4px solid #7f1d1d; }
+    /* 小型化したPAPIライト */
+    .papi-light-white { background: radial-gradient(circle at 40% 35%, #fff 10%, #f1f5f9 50%, #fef9c3 100%); box-shadow: 0 0 15px 5px rgba(255,255,255,0.6); border: 2px solid #475569; }
+    .papi-light-red   { background: radial-gradient(circle at 40% 35%, #fca5a5 10%, #ef4444 50%, #991b1b 100%); box-shadow: 0 0 12px 5px rgba(239,68,68,0.5); border: 2px solid #7f1d1d; }
     
-    .btn-active-indigo { background: #4f46e5; color: #fff; border-color: #6366f1; box-shadow: 0 0 15px rgba(79, 70, 229, 0.4); }
+    .btn-active-indigo { background: #4f46e5; color: #fff; border-color: #6366f1; box-shadow: 0 0 10px rgba(79, 70, 229, 0.3); }
     .btn-inactive { color: #94a3b8; background: #1e293b; border: 1px solid #334155; }
     
     svg text { font-family: 'JetBrains Mono', monospace; pointer-events: none; font-weight: 800; }
-    
-    .glass-effect { background: rgba(15, 23, 42, 0.85); backdrop-blur: 12px; border: 2px solid rgba(99, 102, 241, 0.3); }
+    .glass-effect { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); border: 1px solid rgba(99, 102, 241, 0.4); }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
 <!-- HEADER -->
-<header class="border-b border-slate-800 bg-slate-950 px-8 py-5 flex justify-between items-center shadow-2xl">
-  <div class="flex items-center gap-5">
-    <div class="bg-indigo-600 p-2.5 rounded-lg text-white shadow-xl">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 8v8"/></svg>
+<header class="border-b border-slate-800 bg-slate-950 px-6 py-4 flex justify-between items-center shadow-2xl">
+  <div class="flex items-center gap-4">
+    <div class="bg-indigo-600 p-2 rounded-lg text-white">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 8v8"/></svg>
     </div>
-    <h1 class="text-2xl font-black tracking-tighter uppercase">PAPI Analyzer <span class="text-indigo-400">v1.6</span></h1>
+    <h1 class="text-xl font-black tracking-tighter uppercase">PAPI Analyzer <span class="text-indigo-400">v1.7</span></h1>
   </div>
-  <div id="temp-dev-badge" class="px-6 py-2.5 rounded-xl font-black text-lg border border-emerald-800/50 bg-emerald-950/30 text-emerald-400 shadow-inner">Δ+0.0°C (ISA)</div>
+  <div id="temp-dev-badge" class="px-4 py-1.5 rounded-lg font-black text-base border border-emerald-800/50 bg-emerald-950/30 text-emerald-400">Δ+0.0°C (ISA)</div>
 </header>
 
-<main class="flex-1 grid grid-cols-1 xl:grid-cols-12 gap-6 p-6">
+<main class="flex-1 grid grid-cols-1 xl:grid-cols-12 gap-4 p-4">
 
   <!-- LEFT & CENTER: GRAPH AREA -->
-  <div class="xl:col-span-9 flex flex-col gap-6">
-    <div class="flex-1 bg-slate-950 border border-slate-800 rounded-[2rem] p-8 shadow-2xl relative overflow-hidden">
+  <div class="xl:col-span-9 flex flex-col gap-4">
+    <div class="flex-1 bg-slate-950 border border-slate-800 rounded-[1.5rem] p-6 shadow-2xl relative overflow-hidden">
       
-      <!-- PAPI Cockpit View (右下に移動) -->
-      <div class="absolute bottom-10 right-10 z-10 glass-effect rounded-[2rem] p-8 shadow-2xl flex flex-col items-center gap-6">
-        <div class="text-xs font-black text-indigo-300 uppercase tracking-[0.3em]">PAPI Cockpit View</div>
-        <div class="flex gap-6" id="papi-lights-container"></div>
-        <div class="text-center">
-          <div class="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Perceived Angle (Pilot Eye)</div>
-          <div class="text-4xl font-mono font-black text-white" id="perceived-angle-display">3.25°</div>
-          <div id="papi-label" class="inline-block text-sm font-black px-6 py-2 rounded-full border bg-slate-950 mt-4 shadow-lg">---</div>
+      <!-- DUAL PAPI Cockpit View (右下に配置) -->
+      <div class="absolute bottom-6 right-6 z-10 glass-effect rounded-2xl p-4 shadow-2xl flex flex-col gap-4 w-64">
+        <!-- 3.25° View -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-[8px] font-black text-indigo-400 uppercase tracking-widest">On 3.25° Path</span>
+            <span id="ang-325-display" class="text-xs font-bold text-white">---°</span>
+          </div>
+          <div class="flex gap-2 justify-center" id="papi-325-container"></div>
+          <div id="label-325" class="text-[8px] font-black text-center py-1 rounded-full border bg-slate-950">---</div>
+        </div>
+        <div class="border-t border-slate-800"></div>
+        <!-- 3.02° View -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest">On 3.02° Path</span>
+            <span id="ang-302-display" class="text-xs font-bold text-white">---°</span>
+          </div>
+          <div class="flex gap-2 justify-center" id="papi-302-container"></div>
+          <div id="label-302" class="text-[8px] font-black text-center py-1 rounded-full border bg-slate-950">---</div>
         </div>
       </div>
 
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-lg font-black text-slate-500 uppercase tracking-[0.4em]">Approach Profile Visualization</h2>
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xs font-black text-slate-500 uppercase tracking-[0.3em]">Approach Profile</h2>
       </div>
 
-      <div class="bg-slate-900/40 rounded-3xl border border-slate-800 overflow-hidden">
+      <div class="bg-slate-900/40 rounded-2xl border border-slate-800 overflow-hidden">
         <svg id="main-svg" viewBox="0 0 800 450" class="w-full h-auto select-none"></svg>
       </div>
     </div>
 
     <!-- Bottom Stats Area -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="bg-slate-900/50 border border-slate-800 rounded-3xl p-8">
-        <h3 class="text-base font-black text-emerald-400 mb-4 uppercase tracking-widest">3.02° Path (Standard)</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+        <h3 class="text-sm font-black text-emerald-400 mb-2 uppercase tracking-widest">3.02° Path Alt</h3>
         <div class="flex justify-between items-end">
           <div>
-            <div class="text-slate-500 text-xs font-bold uppercase mb-1">True Altitude at Current Dist</div>
             <div id="true-302" class="text-4xl font-black text-white">---</div>
           </div>
-          <div id="diff-302" class="text-2xl font-bold">±0 ft</div>
+          <div id="diff-302" class="text-xl font-bold">±0 ft</div>
         </div>
       </div>
-      <div class="bg-slate-900/50 border border-slate-800 rounded-3xl p-8">
-        <h3 class="text-base font-black text-indigo-400 mb-4 uppercase tracking-widest">3.25° Path (HND 16L/R)</h3>
+      <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+        <h3 class="text-sm font-black text-indigo-400 mb-2 uppercase tracking-widest">3.25° Path Alt</h3>
         <div class="flex justify-between items-end">
           <div>
-            <div class="text-slate-500 text-xs font-bold uppercase mb-1">True Altitude at Current Dist</div>
             <div id="true-325" class="text-4xl font-black text-white">---</div>
           </div>
-          <div id="diff-325" class="text-2xl font-bold">±0 ft</div>
+          <div id="diff-325" class="text-xl font-bold">±0 ft</div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- RIGHT: CONTROL PANEL -->
-  <div class="xl:col-span-3 flex flex-col gap-6">
-    <div class="bg-slate-900/80 border border-slate-800 rounded-[2.5rem] p-8 flex flex-col gap-10 shadow-2xl">
-      <h3 class="text-xl font-black text-white border-b border-slate-700 pb-5 uppercase tracking-tighter">Flight Parameters</h3>
+  <div class="xl:col-span-3 flex flex-col gap-4">
+    <div class="bg-slate-900/80 border border-slate-800 rounded-[1.5rem] p-6 flex flex-col gap-8 shadow-2xl h-full">
+      <h3 class="text-lg font-black text-white border-b border-slate-700 pb-4 uppercase tracking-tighter">Controls</h3>
       
       <!-- Distance Slider -->
-      <div class="space-y-5">
+      <div class="space-y-4">
         <div class="flex justify-between items-center">
-          <label class="text-base font-black text-orange-400 uppercase">Distance (NM)</label>
+          <label class="text-sm font-black text-orange-400 uppercase">Distance (NM)</label>
           <span id="dist-display" class="font-mono text-2xl font-black text-white">3.0</span>
         </div>
-        <input type="range" id="dist-slider" min="0.5" max="5.0" step="0.1" value="3.0" class="w-full" />
-        <p class="text-[10px] text-slate-500 italic leading-tight">※機体は常に3.25°パス（気温補正済）上を飛行中と仮定</p>
+        <input type="range" id="dist-slider" min="0.1" max="5.0" step="0.1" value="3.0" class="w-full" />
       </div>
 
       <!-- Eye Height Slider -->
-      <div class="space-y-5">
+      <div class="space-y-4">
         <div class="flex justify-between items-center">
-          <label class="text-base font-black text-indigo-300 uppercase">Eye Height (ft)</label>
+          <label class="text-sm font-black text-indigo-300 uppercase">Eye Height (ft)</label>
           <span id="eye-height-display" class="font-mono text-2xl font-black text-white">15</span>
         </div>
         <input type="range" id="eye-height-slider" min="0" max="40" step="1" value="15" class="w-full" />
       </div>
 
       <!-- Temperature Slider -->
-      <div class="space-y-5">
+      <div class="space-y-4">
         <div class="flex justify-between items-center">
-          <label class="text-base font-black text-emerald-400 uppercase">Airport Temp</label>
+          <label class="text-sm font-black text-emerald-400 uppercase">Airport Temp</label>
           <span id="temp-display" class="font-mono text-2xl font-black text-white">15°C</span>
         </div>
         <input type="range" id="temp-slider" min="-20" max="45" step="1" value="15" class="w-full" />
-        <button onclick="resetTemp()" class="w-full py-4 text-sm bg-slate-800 hover:bg-slate-700 rounded-2xl text-slate-300 border border-slate-600 font-black transition uppercase shadow-lg">Reset to ISA</button>
+        <button onclick="resetTemp()" class="w-full py-3 text-xs bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 border border-slate-600 font-black transition uppercase">Reset ISA</button>
       </div>
 
       <!-- PAPI Mode Switch -->
-      <div class="space-y-4">
-        <label class="text-sm font-black text-slate-400 uppercase tracking-widest">PAPI Specification</label>
-        <div class="flex flex-col gap-3">
-          <button id="btn-general" onclick="setPapiMode('general')" class="w-full py-4 rounded-2xl text-xs font-black border transition btn-inactive">STANDARD 3.00°</button>
-          <button id="btn-hnd" onclick="setPapiMode('hnd')" class="w-full py-4 rounded-2xl text-xs font-black border transition btn-active-indigo">HANEDA 16L/R 3.25°</button>
+      <div class="space-y-3">
+        <label class="text-xs font-black text-slate-400 uppercase tracking-widest">PAPI Spec</label>
+        <div class="flex flex-col gap-2">
+          <button id="btn-general" onclick="setPapiMode('general')" class="w-full py-3 rounded-xl text-[10px] font-black border transition btn-inactive">STANDARD 3.00°</button>
+          <button id="btn-hnd" onclick="setPapiMode('hnd')" class="w-full py-3 rounded-xl text-[10px] font-black border transition btn-active-indigo">HANEDA 3.25°</button>
         </div>
       </div>
 
       <!-- Vertical Zoom -->
-      <div class="space-y-4">
+      <div class="space-y-3">
         <div class="flex justify-between">
-          <label class="text-sm font-black text-slate-500 uppercase">Vert Zoom</label>
-          <span id="zoom-display" class="font-mono text-sm font-bold text-slate-500">12x</span>
+          <label class="text-xs font-black text-slate-500 uppercase">Vert Zoom</label>
+          <span id="zoom-display" class="font-mono text-xs font-bold text-slate-500">12x</span>
         </div>
         <input type="range" id="zoom-slider" min="5" max="25" step="1" value="12" class="w-full" />
       </div>
@@ -144,7 +153,7 @@
 </main>
 
 <script>
-// 初期状態: 羽田3.25°をデフォルトに設定
+// 初期状態: 羽田3.25°をデフォルト
 const state = { papiMode: 'hnd', temp: 15, zoom: 12, distNm: 3.0, eyeHeight: 15 };
 const ISA_TEMP = 15;
 const ABS_ZERO = -273.15;
@@ -165,77 +174,80 @@ function updateAll() {
   const dNm = state.distNm;
   const dFt = dNm * FT_PER_NM;
   
-  // 気温補正後の各パスの角度
   const true302 = calcTrueAngle(3.02, t);
   const true325 = calcTrueAngle(3.25, t);
 
-  // 機体は常に3.25°パス（気温補正済）上にいると仮定
-  const acHeight = dFt * Math.tan(true325 * Math.PI / 180);
+  // 各パス上の機体高度
+  const acH302 = dFt * Math.tan(true302 * Math.PI / 180);
+  const acH325 = dFt * Math.tan(true325 * Math.PI / 180);
   
-  // パイロットの視点角度（機体高度 + Eye Height）
-  const perceivedAngle = Math.atan((acHeight + eh) / dFt) * 180 / Math.PI;
+  // パイロット視点角度の計算
+  const pAng302 = Math.atan((acH302 + eh) / dFt) * 180 / Math.PI;
+  const pAng325 = Math.atan((acH325 + eh) / dFt) * 180 / Math.PI;
 
   // UI更新
   document.getElementById('temp-display').textContent = `${t}°C`;
   document.getElementById('eye-height-display').textContent = `${eh} ft`;
   document.getElementById('dist-display').textContent = dNm.toFixed(1);
-  document.getElementById('temp-dev-badge').textContent = `Δ${(t-ISA_TEMP)>=0?'+':''}${(t-ISA_TEMP).toFixed(1)}°C ${t==15?'(ISA)':''}`;
+  document.getElementById('temp-dev-badge').textContent = `Δ${(t-ISA_TEMP)>=0?'+':''}${(t-ISA_TEMP).toFixed(1)}°C`;
   document.getElementById('zoom-display').textContent = `${state.zoom}x`;
-  document.getElementById('perceived-angle-display').textContent = `${perceivedAngle.toFixed(2)}°`;
+  
+  document.getElementById('ang-302-display').textContent = `${pAng302.toFixed(2)}°`;
+  document.getElementById('ang-325-display').textContent = `${pAng325.toFixed(2)}°`;
 
   const bounds = PAPI_BOUNDS[state.papiMode];
-  renderPapi(perceivedAngle, bounds);
+  
+  // 二つのPAPIビューを更新
+  renderPapi('papi-302-container', 'label-302', pAng302, bounds);
+  renderPapi('papi-325-container', 'label-325', pAng325, bounds);
 
-  // 統計表示（現在の距離における各パスの目標高度）
-  const target302 = dFt * Math.tan(true302 * Math.PI / 180);
-  const target325 = acHeight; // 機体高度そのもの
+  // 統計表示
   const nom302 = dFt * Math.tan(3.02 * Math.PI / 180);
   const nom325 = dFt * Math.tan(3.25 * Math.PI / 180);
+  updateStat('true-302', 'diff-302', Math.round(acH302), Math.round(acH302 - nom302));
+  updateStat('true-325', 'diff-325', Math.round(acH325), Math.round(acH325 - nom325));
 
-  updateStat('true-302', 'diff-302', Math.round(target302), Math.round(target302 - nom302));
-  updateStat('true-325', 'diff-325', Math.round(target325), Math.round(target325 - nom325));
-
-  drawSVG(true302, true325, bounds, acHeight, eh, dNm);
+  drawSVG(true302, true325, bounds, acH325, eh, dNm);
 }
 
 function updateStat(idVal, idDiff, target, diff) {
   document.getElementById(idVal).textContent = `${target} ft`;
   const diffEl = document.getElementById(idDiff);
   diffEl.textContent = `${diff >= 0 ? '+' : ''}${diff} ft`;
-  diffEl.className = `text-2xl font-black font-mono ${diff < -50 ? 'text-rose-500' : diff > 50 ? 'text-emerald-500' : 'text-slate-400'}`;
+  diffEl.className = `text-xl font-black font-mono ${diff < -30 ? 'text-rose-500' : diff > 30 ? 'text-emerald-500' : 'text-slate-400'}`;
 }
 
-function renderPapi(angle, bounds) {
-  const container = document.getElementById('papi-lights-container');
+function renderPapi(containerId, labelId, angle, bounds) {
+  const container = document.getElementById(containerId);
   container.innerHTML = '';
   const colors = bounds.map(b => angle >= b ? 'W' : 'R');
   colors.forEach(c => {
     const div = document.createElement('div');
-    div.className = `w-16 h-16 rounded-full ${c === 'W' ? 'papi-light-white' : 'papi-light-red'}`;
+    div.className = `w-8 h-8 rounded-full ${c === 'W' ? 'papi-light-white' : 'papi-light-red'}`;
     container.appendChild(div);
   });
   const redCount = colors.filter(c => c === 'R').length;
-  const label = document.getElementById('papi-label');
+  const label = document.getElementById(labelId);
   const info = [
     { txt: 'TOO HIGH', cls: 'border-emerald-500 text-emerald-400' },
     { txt: 'SLIGHTLY HIGH', cls: 'border-lime-500 text-lime-400' },
-    { txt: 'ON GLIDE PATH', cls: 'border-cyan-500 text-cyan-400' },
+    { txt: 'ON PATH', cls: 'border-cyan-500 text-cyan-400' },
     { txt: 'SLIGHTLY LOW', cls: 'border-orange-500 text-orange-400' },
     { txt: 'TOO LOW', cls: 'border-rose-500 text-rose-400' }
   ][redCount];
   label.textContent = info.txt;
-  label.className = `text-sm font-black px-8 py-2 rounded-full border bg-slate-950 shadow-2xl ${info.cls}`;
+  label.className = `text-[7px] font-black px-3 py-0.5 rounded-full border bg-slate-950 ${info.cls}`;
 }
 
 function drawSVG(t302, t325, bounds, ach, eh, dNm) {
   const svg = document.getElementById('main-svg');
   svg.innerHTML = '';
-  const OX = 80, OY = 380, W = 800, H = 450;
+  const OX = 60, OY = 380, W = 800, H = 450;
   const ns = "http://www.w3.org/2000/svg";
 
   const getAng = (a) => (a - 2.0) * state.zoom + 20;
   const getCoords = (a, nm, offsetFt = 0) => {
-    const distPx = nm * 140; // 距離のスケール調整
+    const distPx = nm * 140;
     const rad = getAng(a) * Math.PI / 180;
     const visualOffset = (offsetFt / 100) * state.zoom * 2; 
     return { x: OX + distPx, y: OY - Math.tan(rad) * distPx - visualOffset };
@@ -257,7 +269,7 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
 
   // PAPIユニット
   const unit = document.createElementNS(ns, "rect");
-  unit.setAttribute("x", OX-10); unit.setAttribute("y", OY-10); unit.setAttribute("width", 20); unit.setAttribute("height", 10);
+  unit.setAttribute("x", OX-8); unit.setAttribute("y", OY-8); unit.setAttribute("width", 16); unit.setAttribute("height", 8);
   unit.setAttribute("fill", "#f1f5f9");
   svg.appendChild(unit);
 
@@ -269,7 +281,7 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
     l.setAttribute("stroke", "#1e293b"); l.setAttribute("stroke-dasharray", "4,4");
     svg.appendChild(l);
     const t = document.createElementNS(ns, "text");
-    t.setAttribute("x", x); t.setAttribute("y", OY+30); t.setAttribute("fill", "#475569"); t.setAttribute("font-size", "14"); t.setAttribute("text-anchor", "middle");
+    t.setAttribute("x", x); t.setAttribute("y", OY+25); t.setAttribute("fill", "#475569"); t.setAttribute("font-size", "12"); t.setAttribute("text-anchor", "middle");
     t.textContent = `${i}NM`;
     svg.appendChild(t);
   }
@@ -279,7 +291,7 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
     const p = getCoords(a, 5.2);
     const l = document.createElementNS(ns, "line");
     l.setAttribute("x1", OX); l.setAttribute("y1", OY); l.setAttribute("x2", p.x); l.setAttribute("y2", p.y);
-    l.setAttribute("stroke", col); l.setAttribute("stroke-width", isThick ? 4 : 1);
+    l.setAttribute("stroke", col); l.setAttribute("stroke-width", isThick ? 3 : 1);
     if(!isThick) l.setAttribute("stroke-dasharray", "5,3");
     svg.appendChild(l);
   };
@@ -288,35 +300,33 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
   drawPath(t302, "#10b981", true);
   drawPath(t325, "#6366f1", true);
 
-  // 航空機アイコン
+  // 航空機アイコン (3.25°パス上に表示)
   const acPos = getCoords(t325, dNm);
   const eyePos = getCoords(t325, dNm, eh);
 
-  // 機体
   const ac = document.createElementNS(ns, "circle");
-  ac.setAttribute("cx", acPos.x); ac.setAttribute("cy", acPos.y); ac.setAttribute("r", 8);
+  ac.setAttribute("cx", acPos.x); ac.setAttribute("cy", acPos.y); ac.setAttribute("r", 6);
   ac.setAttribute("fill", "#6366f1");
   ac.setAttribute("stroke", "#fff");
-  ac.setAttribute("stroke-width", "3");
+  ac.setAttribute("stroke-width", "2");
   svg.appendChild(ac);
 
-  // 視点
   if(eh > 0) {
     const eye = document.createElementNS(ns, "circle");
-    eye.setAttribute("cx", eyePos.x); eye.setAttribute("cy", eyePos.y); eye.setAttribute("r", 5);
+    eye.setAttribute("cx", eyePos.x); eye.setAttribute("cy", eyePos.y); eye.setAttribute("r", 4);
     eye.setAttribute("fill", "#fff");
     svg.appendChild(eye);
     const line = document.createElementNS(ns, "line");
     line.setAttribute("x1", acPos.x); line.setAttribute("y1", acPos.y); line.setAttribute("x2", eyePos.x); line.setAttribute("y2", eyePos.y);
-    line.setAttribute("stroke", "#fff"); line.setAttribute("stroke-width", "2"); line.setAttribute("stroke-dasharray", "3,3");
+    line.setAttribute("stroke", "#fff"); line.setAttribute("stroke-width", "1.5"); line.setAttribute("stroke-dasharray", "2,2");
     svg.appendChild(line);
   }
 }
 
 function setPapiMode(m) {
   state.papiMode = m;
-  document.getElementById('btn-general').className = `w-full py-4 rounded-2xl text-xs font-black border transition ${m==='general'?'btn-active-indigo':'btn-inactive'}`;
-  document.getElementById('btn-hnd').className = `w-full py-4 rounded-2xl text-xs font-black border transition ${m==='hnd'?'btn-active-indigo':'btn-inactive'}`;
+  document.getElementById('btn-general').className = `w-full py-3 rounded-xl text-[10px] font-black border transition ${m==='general'?'btn-active-indigo':'btn-inactive'}`;
+  document.getElementById('btn-hnd').className = `w-full py-3 rounded-xl text-[10px] font-black border transition ${m==='hnd'?'btn-active-indigo':'btn-inactive'}`;
   updateAll();
 }
 
