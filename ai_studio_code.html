@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Advanced PAPI Sim v2.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@500;800&display=swap');
+    body { font-family: 'Inter', sans-serif; background: #020617; color: #f8fafc; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    /* PAPIライトの特殊効果 */
+    .papi-lens { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .white-lens { background: radial-gradient(circle at 35% 35%, #fff 10%, #e2e8f0 40%, #94a3b8 100%); box-shadow: 0 0 25px rgba(255,255,255,0.4); }
+    .red-lens { background: radial-gradient(circle at 35% 35%, #ff4d4d 10%, #b91c1c 50%, #7f1d1d 100%); box-shadow: 0 0 25px rgba(239,68,68,0.5); }
+    .pink-lens { background: radial-gradient(circle at 35% 35%, #ffb3b3 10%, #f472b6 50%, #be185d 100%); box-shadow: 0 0 25px rgba(244,114,182,0.4); }
+
+    input[type=range] { -webkit-appearance: none; background: #1e293b; height: 8px; border-radius: 10px; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #6366f1; cursor: pointer; border: 2px solid #fff; }
+    
+    .glass-panel { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.5); }
+    .status-badge { font-size: 0.7rem; font-weight: 800; padding: 2px 8px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; }
+  </style>
+</head>
+<body class="min-h-screen p-2 md:p-6">
+
+<header class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+  <div>
+    <h1 class="text-2xl font-black italic tracking-tighter flex items-center gap-2">
+      <span class="text-indigo-500">PAPI</span> VISUAL ANALYZER <span class="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded">v2.1 PRO</span>
+    </h1>
+    <p class="text-slate-400 text-xs mono">Temperature Error & Glide Path Visualization</p>
+  </div>
+  
+  <div class="flex gap-2">
+    <!-- プリセットボタン -->
+    <button onclick="applyPreset(-5, 'hnd')" class="text-[10px] mono bg-sky-900/40 border border-sky-500/50 text-sky-300 px-3 py-2 rounded-lg hover:bg-sky-800 transition">HND WINTER (-5°C)</button>
+    <button onclick="applyPreset(35, 'hnd')" class="text-[10px] mono bg-orange-900/40 border border-orange-500/50 text-orange-300 px-3 py-2 rounded-lg hover:bg-orange-800 transition">HND SUMMER (35°C)</button>
+    <button onclick="applyPreset(15, 'general')" class="text-[10px] mono bg-slate-800 border border-slate-600 text-slate-300 px-3 py-2 rounded-lg hover:bg-slate-700 transition">ISA STD (15°C)</button>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+  
+  <!-- LEFT: Side Profile -->
+  <div class="lg:col-span-8 flex flex-col gap-4">
+    <div class="glass-panel rounded-3xl p-4 shadow-2xl relative overflow-hidden">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-sm font-bold flex items-center gap-2 text-slate-300">
+          <span class="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+          VERTICAL PROFILE VIEW
+        </h2>
+        <div class="flex items-center gap-4 text-[10px] mono">
+          <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-emerald-400"></span> 3.02° GP</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-indigo-500"></span> 3.25° GP</span>
+        </div>
+      </div>
+      
+      <div class="bg-[#010409] rounded-2xl border border-slate-800 relative overflow-hidden">
+        <svg id="main-svg" viewBox="0 0 800 400" class="w-full h-auto"></svg>
+      </div>
+
+      <!-- Control Panel -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div class="space-y-3">
+          <div class="flex justify-between">
+            <label class="text-xs font-bold text-slate-400">AIRPORT TEMPERATURE</label>
+            <span id="temp-val" class="mono text-indigo-400 font-bold">15°C</span>
+          </div>
+          <input type="range" id="temp-slider" min="-20" max="45" step="1" value="15" class="w-full">
+          <div class="flex justify-between text-[9px] text-slate-500 mono">
+            <span>-20°C</span><span>0°C</span><span>ISA (15°C)</span><span>30°C</span><span>45°C</span>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <label class="text-[10px] font-bold text-slate-500">PAPI SPEC</label>
+            <div class="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+              <button id="mode-general" onclick="state.mode='general';update()" class="flex-1 text-[10px] py-2 rounded-md transition mode-btn">3.0° Std</button>
+              <button id="mode-hnd" onclick="state.mode='hnd';update()" class="flex-1 text-[10px] py-2 rounded-md transition mode-btn">3.25° HND</button>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="text-[10px] font-bold text-slate-500">ZOOM</label>
+            <input type="range" id="zoom-slider" min="5" max="30" value="15" class="w-full mt-2">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Cockpit & Stats -->
+  <div class="lg:col-span-4 flex flex-col gap-6">
+    
+    <!-- PAPI Display -->
+    <div class="glass-panel rounded-3xl p-6 shadow-xl border-t-4 border-t-indigo-500">
+      <div class="text-center mb-6">
+        <span class="status-badge bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Pilot Eye View</span>
+        <h3 class="text-3xl mono font-black mt-2 tracking-tighter" id="cockpit-angle">3.25°</h3>
+        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">True Glide Path Angle</p>
+      </div>
+
+      <div class="flex justify-center gap-3 mb-6" id="papi-lights">
+        <!-- JS Renders Lights -->
+      </div>
+
+      <div id="papi-msg-box" class="p-4 rounded-2xl text-center transition-all duration-500">
+        <p id="papi-label" class="text-xs font-black mb-1"></p>
+        <p id="papi-desc" class="text-[10px] opacity-80 leading-relaxed"></p>
+      </div>
+    </div>
+
+    <!-- Stats Table -->
+    <div class="glass-panel rounded-3xl p-5">
+      <h4 class="text-xs font-bold text-slate-400 mb-4 flex items-center gap-2">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+        APPROACH ANALYSIS (3NM)
+      </h4>
+      <div class="space-y-4">
+        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+          <div class="flex justify-between text-[10px] mb-2 font-bold uppercase tracking-tighter">
+            <span class="text-emerald-400">Standard Path (3.02°)</span>
+            <span class="text-slate-500" id="dev-302-pct">0%</span>
+          </div>
+          <div class="flex justify-between items-end">
+            <div class="text-2xl mono font-bold" id="alt-302">960<span class="text-xs text-slate-500 ml-1">ft</span></div>
+            <div class="text-xs mono mb-1" id="diff-302">±0</div>
+          </div>
+        </div>
+        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+          <div class="flex justify-between text-[10px] mb-2 font-bold uppercase tracking-tighter">
+            <span class="text-indigo-400">Steep Path (3.25°)</span>
+            <span class="text-slate-500" id="dev-325-pct">0%</span>
+          </div>
+          <div class="flex justify-between items-end">
+            <div class="text-2xl mono font-bold" id="alt-325">1035<span class="text-xs text-slate-500 ml-1">ft</span></div>
+            <div class="text-xs mono mb-1" id="diff-325">±0</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-4 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+        <p class="text-[9px] text-amber-200/70 leading-relaxed italic">
+          * Baro-VNAV error: In cold weather, your altimeter reads higher than you actually are. PAPI will show more red than usual even if the altimeter looks correct.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const state = {
+  temp: 15,
+  mode: 'hnd', // general or hnd
+  zoom: 15,
+  monitorGp: 3.25
+};
+
+const ISA_T = 15;
+const ABS_ZERO = -273.15;
+const NM_TO_FT = 6076.12;
+
+// PAPI boundaries (degrees)
+const PAPI_CONFIG = {
+  general: [3.58, 3.25, 2.75, 2.42], // Simplified for demo
+  hnd:     [3.83, 3.50, 3.00, 2.67]  
+};
+
+function calcTrueAngle(nominal, temp) {
+  return nominal * ((temp - ABS_ZERO) / (ISA_T - ABS_ZERO));
+}
+
+function getPapiStatus(angle, config) {
+  // 遷移帯（Transition Zone）の幅
+  const tz = 0.04; 
+  
+  const getLensColor = (boundary) => {
+    const diff = angle - boundary;
+    if (diff > tz/2) return 'white';
+    if (diff < -tz/2) return 'red';
+    return 'pink'; // Transition
+  };
+
+  const colors = config.map(b => getLensColor(b));
+  const redCount = colors.filter(c => c === 'red').length;
+  
+  const info = [
+    { label: 'TOO HIGH', desc: '白4灯: 高すぎます。旋回待機またはゴーアラウンドを検討。', color: 'bg-emerald-500/20 text-emerald-400' },
+    { label: 'SLIGHTLY HIGH', desc: '白3赤1: やや高い。降下率を微調整してください。', color: 'bg-lime-500/20 text-lime-400' },
+    { label: 'ON GLIDE PATH', desc: '白2赤2: 適切なパス。精密なアプローチが維持されています。', color: 'bg-indigo-500/20 text-indigo-300' },
+    { label: 'SLIGHTLY LOW', desc: '白1赤3: 低い。寒冷時のBaro沈み込みに注意。', color: 'bg-orange-500/20 text-orange-400' },
+    { label: 'TOO LOW', desc: '赤4灯: 危険！地面への激突リスク。即座に上昇してください。', color: 'bg-red-500/20 text-red-400' }
+  ][redCount] || { label: 'TRANSITION', desc: '移行帯: 境界付近を飛行中。', color: 'bg-pink-500/20 text-pink-400' };
+
+  return { colors, ...info };
+}
+
+function update() {
+  const true302 = calcTrueAngle(3.02, state.temp);
+  const true325 = calcTrueAngle(3.25, state.temp);
+  const config = PAPI_CONFIG[state.mode];
+  const status = getPapiStatus(true325, config);
+
+  // UI - Labels
+  document.getElementById('temp-val').textContent = `${state.temp}°C`;
+  document.getElementById('cockpit-angle').textContent = `${true325.toFixed(2)}°`;
+  
+  // Update Buttons
+  document.querySelectorAll('.mode-btn').forEach(b => b.className = 'flex-1 text-[10px] py-2 rounded-md transition mode-btn bg-transparent text-slate-500');
+  document.getElementById(`mode-${state.mode}`).className = 'flex-1 text-[10px] py-2 rounded-md transition mode-btn bg-indigo-600 text-white font-bold shadow-lg';
+
+  // Stats
+  const h302 = Math.round(3 * NM_TO_FT * Math.tan(true302 * Math.PI / 180));
+  const h325 = Math.round(3 * NM_TO_FT * Math.tan(true325 * Math.PI / 180));
+  const n302 = Math.round(3 * NM_TO_FT * Math.tan(3.02 * Math.PI / 180));
+  const n325 = Math.round(3 * NM_TO_FT * Math.tan(3.25 * Math.PI / 180));
+
+  document.getElementById('alt-302').innerHTML = `${h302}<span class="text-xs text-slate-500 ml-1">ft</span>`;
+  document.getElementById('alt-325').innerHTML = `${h325}<span class="text-xs text-slate-500 ml-1">ft</span>`;
+  
+  const diff325 = h325 - n325;
+  document.getElementById('diff-325').textContent = `${diff325 >= 0 ? '+' : ''}${diff325} ft`;
+  document.getElementById('diff-325').className = `text-xs mono mb-1 ${diff325 < 0 ? 'text-red-400' : 'text-emerald-400'}`;
+  document.getElementById('dev-325-pct').textContent = `${((true325/3.25-1)*100).toFixed(1)}%`;
+
+  // PAPI Lights Render
+  const lightContainer = document.getElementById('papi-lights');
+  lightContainer.innerHTML = '';
+  status.colors.forEach(c => {
+    const box = document.createElement('div');
+    box.className = 'w-16 h-16 bg-slate-800 rounded-xl border-2 border-slate-700 flex items-center justify-center relative overflow-hidden';
+    const lens = document.createElement('div');
+    lens.className = `w-12 h-12 rounded-full papi-lens ${c}-lens`;
+    const shutter = document.createElement('div');
+    shutter.className = 'absolute top-1/2 left-0 w-full h-0.5 bg-black/40';
+    box.appendChild(lens);
+    box.appendChild(shutter);
+    lightContainer.appendChild(box);
+  });
+
+  const msgBox = document.getElementById('papi-msg-box');
+  msgBox.className = `p-4 rounded-2xl text-center transition-all duration-500 ${status.color}`;
+  document.getElementById('papi-label').textContent = status.label;
+  document.getElementById('papi-desc').textContent = status.desc;
+
+  drawProfile(true302, true325, config);
+}
+
+function drawProfile(t302, t325, config) {
+  const svg = document.getElementById('main-svg');
+  svg.innerHTML = '';
+  const W = 800, H = 400, OX = 80, OY = 350;
+
+  const getPos = (ang, nm) => {
+    const rad = ang * (state.zoom / 5) * Math.PI / 180;
+    return { x: OX + nm * 200, y: OY - Math.tan(rad) * (nm * 200) };
+  };
+
+  // Ground & Runway
+  const ground = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  ground.setAttribute("x", 0); ground.setAttribute("y", OY); ground.setAttribute("width", W); ground.setAttribute("height", H - OY);
+  ground.setAttribute("fill", "#0a0f1a");
+  svg.appendChild(ground);
+
+  const rwy = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  rwy.setAttribute("d", `M ${OX-60} ${OY} L ${OX+100} ${OY} L ${OX+80} ${OY+15} L ${OX-60} ${OY+15} Z`);
+  rwy.setAttribute("fill", "#1e293b");
+  svg.appendChild(rwy);
+
+  // Grid
+  for(let i=1; i<=3; i++) {
+    const x = OX + i * 200;
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    l.setAttribute("x1", x); l.setAttribute("y1", 0); l.setAttribute("x2", x); l.setAttribute("y2", OY);
+    l.setAttribute("stroke", "#1e293b"); l.setAttribute("stroke-dasharray", "4,4");
+    svg.appendChild(l);
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    t.setAttribute("x", x); t.setAttribute("y", OY + 20); t.setAttribute("fill", "#475569");
+    t.setAttribute("font-size", "10"); t.setAttribute("text-anchor", "middle"); t.textContent = i + "NM";
+    svg.appendChild(t);
+  }
+
+  // PAPI Sectors (Background Glow)
+  config.forEach((ang, i) => {
+    const p = getPos(ang, 3.5);
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", OX); line.setAttribute("y1", OY); line.setAttribute("x2", p.x); line.setAttribute("y2", p.y);
+    line.setAttribute("stroke", "#1e293b"); line.setAttribute("stroke-width", "1");
+    svg.appendChild(line);
+  });
+
+  // Glide Paths
+  const drawGP = (ang, color, label) => {
+    const p = getPos(ang, 3.2);
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    l.setAttribute("x1", OX); l.setAttribute("y1", OY); l.setAttribute("x2", p.x); l.setAttribute("y2", p.y);
+    l.setAttribute("stroke", color); l.setAttribute("stroke-width", "3"); l.setAttribute("stroke-linecap", "round");
+    svg.appendChild(l);
+    
+    // Aircraft icon (Simple dot)
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    const cp = getPos(ang, 3);
+    c.setAttribute("cx", cp.x); c.setAttribute("cy", cp.y); c.setAttribute("r", "5");
+    c.setAttribute("fill", color); c.setAttribute("stroke", "white");
+    svg.appendChild(c);
+  };
+
+  drawGP(t302, "#10b981", "3.02°");
+  drawGP(t325, "#6366f1", "3.25°");
+}
+
+function applyPreset(t, mode) {
+  state.temp = t;
+  state.mode = mode;
+  document.getElementById('temp-slider').value = t;
+  update();
+}
+
+document.getElementById('temp-slider').oninput = (e) => { state.temp = parseInt(e.target.value); update(); };
+document.getElementById('zoom-slider').oninput = (e) => { state.zoom = parseInt(e.target.value); update(); };
+
+// Initial Load
+update();
+
+</script>
+</body>
+</html>
