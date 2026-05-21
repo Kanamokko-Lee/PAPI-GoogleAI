@@ -3,101 +3,100 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>PAPI Glide Path Simulator v1.8</title>
+  <title>PAPI Glide Path Simulator v2.0</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&display=swap');
     * { box-sizing: border-box; }
-    body { font-family: 'JetBrains Mono', monospace; background: #0f172a; color: #e2e8f0; margin: 0; overflow-x: hidden; }
+    body { font-family: 'JetBrains Mono', monospace; background: #0f172a; color: #e2e8f0; margin: 0; overflow: hidden; }
     
     input[type=range] { -webkit-appearance: none; appearance: none; height: 8px; border-radius: 4px; background: #1e293b; outline: none; cursor: pointer; }
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #6366f1; cursor: pointer; border: 3px solid #fff; }
     
-    .papi-light-white { background: radial-gradient(circle at 40% 35%, #fff 10%, #f1f5f9 50%, #fef9c3 100%); box-shadow: 0 0 15px 5px rgba(255,255,255,0.6); border: 2px solid #475569; }
-    .papi-light-red   { background: radial-gradient(circle at 40% 35%, #fca5a5 10%, #ef4444 50%, #991b1b 100%); box-shadow: 0 0 12px 5px rgba(239,68,68,0.5); border: 2px solid #7f1d1d; }
+    .papi-light-white { background: radial-gradient(circle at 40% 35%, #fff 10%, #f1f5f9 50%, #fef9c3 100%); box-shadow: 0 0 10px 3px rgba(255,255,255,0.6); border: 1.5px solid #475569; }
+    .papi-light-red   { background: radial-gradient(circle at 40% 35%, #fca5a5 10%, #ef4444 50%, #991b1b 100%); box-shadow: 0 0 8px 3px rgba(239,68,68,0.5); border: 1.5px solid #7f1d1d; }
     
-    .btn-active-indigo { background: #4f46e5; color: #fff; border-color: #6366f1; box-shadow: 0 0 10px rgba(79, 70, 229, 0.3); }
+    .btn-active-indigo { background: #4f46e5; color: #fff; border-color: #6366f1; }
     .btn-inactive { color: #94a3b8; background: #1e293b; border: 1px solid #334155; }
     
     svg text { font-family: 'JetBrains Mono', monospace; pointer-events: none; font-weight: 800; }
-    .glass-effect { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); border: 1px solid rgba(99, 102, 241, 0.5); }
+    
+    .glass-effect { 
+      background: rgba(15, 23, 42, 0.95); 
+      backdrop-filter: blur(8px); 
+      border: 1px solid rgba(99, 102, 241, 0.5); 
+      border-bottom: none;
+      border-radius: 1rem 1rem 0 0;
+    }
+    .text-temp-label { color: #ef4444; font-weight: 900; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-<!-- HEADER -->
 <header class="border-b border-slate-800 bg-slate-950 px-6 py-3 flex justify-between items-center shadow-2xl">
   <div class="flex items-center gap-4">
-    <div class="bg-indigo-600 p-2 rounded-lg text-white">
+    <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-lg">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 8v8"/></svg>
     </div>
-    <h1 class="text-lg font-black tracking-tighter uppercase">PAPI Analyzer <span class="text-indigo-400">v1.8</span></h1>
+    <h1 class="text-lg font-black tracking-tighter uppercase">PAPI Analyzer <span class="text-indigo-400">v2.0</span></h1>
   </div>
   <div id="temp-dev-badge" class="px-4 py-1.5 rounded-lg font-black text-sm border border-emerald-800/50 bg-emerald-950/30 text-emerald-400">Δ+0.0°C (ISA)</div>
 </header>
 
-<!-- MAIN: iPadで左右に並ぶように md:grid を使用 -->
-<main class="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 p-4">
+<main class="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 p-4 overflow-hidden">
 
-  <!-- LEFT AREA: GRAPH & STATS (md:col-span-8 or 9) -->
-  <div class="md:col-span-8 lg:col-span-9 flex flex-col gap-4">
-    <div class="flex-1 bg-slate-950 border border-slate-800 rounded-[1.5rem] p-6 shadow-2xl relative overflow-hidden">
+  <!-- LEFT AREA: GRAPH -->
+  <div class="md:col-span-8 lg:col-span-9 flex flex-col gap-4 h-full">
+    <div class="flex-1 bg-slate-950 border border-slate-800 rounded-[1.5rem] p-6 shadow-2xl relative overflow-hidden flex flex-col">
       
-      <!-- DUAL PAPI Cockpit View (地面ラインに接するように配置) -->
-      <!-- SVGのOY=380, viewBox=450に基づき、bottomを約15.6% + 調整値に設定 -->
-      <div class="absolute bottom-[18.5%] right-8 z-10 glass-effect rounded-2xl p-4 shadow-2xl flex flex-col gap-3 w-60">
-        <!-- 3.25° View -->
-        <div class="space-y-1.5">
-          <div class="flex justify-between items-center">
-            <span class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">On 3.25° Path</span>
-            <span id="ang-325-display" class="text-xs font-bold text-white">---°</span>
+      <!-- STATS & PAPI Cockpit View (地面ライン OY=380 に接するように配置) -->
+      <div class="absolute bottom-[15.6%] right-8 z-10 flex items-end gap-0">
+        <!-- ALT STATS (PAPIの左に隣接) -->
+        <div class="flex flex-col gap-0 glass-effect border-r-0 rounded-r-none p-3 w-36 h-full justify-center">
+          <div class="mb-2">
+            <div class="text-[8px] font-black text-indigo-400 uppercase">3.25° ALT</div>
+            <div id="true-325" class="text-lg font-black text-white leading-none">---</div>
+            <div id="diff-325" class="text-[9px] font-bold">±0 ft</div>
           </div>
-          <div class="flex gap-2 justify-center" id="papi-325-container"></div>
-          <div id="label-325" class="text-[8px] font-black text-center py-0.5 rounded-full border bg-slate-950">---</div>
+          <div class="border-t border-slate-800 my-1"></div>
+          <div>
+            <div class="text-[8px] font-black text-emerald-400 uppercase">3.02° ALT</div>
+            <div id="true-302" class="text-lg font-black text-white leading-none">---</div>
+            <div id="diff-302" class="text-[9px] font-bold">±0 ft</div>
+          </div>
         </div>
-        <div class="border-t border-slate-800"></div>
-        <!-- 3.02° View -->
-        <div class="space-y-1.5">
-          <div class="flex justify-between items-center">
-            <span class="text-[9px] font-black text-emerald-400 uppercase tracking-widest">On 3.02° Path</span>
-            <span id="ang-302-display" class="text-xs font-bold text-white">---°</span>
+
+        <!-- DUAL PAPI (さらに小型化) -->
+        <div class="glass-effect p-3 shadow-2xl flex flex-col gap-2 w-48">
+          <!-- 3.25° View -->
+          <div class="space-y-1">
+            <div class="text-[11px] font-black text-indigo-400 uppercase tracking-tighter text-center">ON 3.25° PATH</div>
+            <div class="flex gap-1.5 justify-center" id="papi-325-container"></div>
+            <div id="label-325" class="text-[7px] font-black text-center py-0.5 rounded-full border bg-slate-950">---</div>
           </div>
-          <div class="flex gap-2 justify-center" id="papi-302-container"></div>
-          <div id="label-302" class="text-[8px] font-black text-center py-0.5 rounded-full border bg-slate-950">---</div>
+          <div class="border-t border-slate-800"></div>
+          <!-- 3.02° View -->
+          <div class="space-y-1">
+            <div class="text-[11px] font-black text-emerald-400 uppercase tracking-tighter text-center">ON 3.02° PATH</div>
+            <div class="flex gap-1.5 justify-center" id="papi-302-container"></div>
+            <div id="label-302" class="text-[7px] font-black text-center py-0.5 rounded-full border bg-slate-950">---</div>
+          </div>
         </div>
       </div>
 
       <div class="flex justify-between items-center mb-2">
-        <h2 class="text-xs font-black text-slate-500 uppercase tracking-[0.3em]">Approach Profile</h2>
+        <h2 class="text-xs font-black text-slate-500 uppercase tracking-[0.3em]">Approach Profile Visualization</h2>
       </div>
 
-      <div class="bg-slate-900/40 rounded-2xl border border-slate-800 overflow-hidden">
-        <svg id="main-svg" viewBox="0 0 800 450" class="w-full h-auto select-none"></svg>
-      </div>
-    </div>
-
-    <!-- Bottom Stats Area -->
-    <div class="grid grid-cols-2 gap-4">
-      <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5">
-        <h3 class="text-xs font-black text-emerald-400 mb-1 uppercase tracking-widest">3.02° Path Alt</h3>
-        <div class="flex justify-between items-end">
-          <div id="true-302" class="text-3xl font-black text-white">---</div>
-          <div id="diff-302" class="text-lg font-bold">±0 ft</div>
-        </div>
-      </div>
-      <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5">
-        <h3 class="text-xs font-black text-indigo-400 mb-1 uppercase tracking-widest">3.25° Path Alt</h3>
-        <div class="flex justify-between items-end">
-          <div id="true-325" class="text-3xl font-black text-white">---</div>
-          <div id="diff-325" class="text-lg font-bold">±0 ft</div>
-        </div>
+      <div class="flex-1 bg-slate-900/40 rounded-2xl border border-slate-800 overflow-hidden relative">
+        <svg id="main-svg" viewBox="0 0 800 450" class="w-full h-full select-none"></svg>
       </div>
     </div>
   </div>
 
-  <!-- RIGHT AREA: CONTROLS (md:col-span-4 or 3) -->
-  <div class="md:col-span-4 lg:col-span-3 flex flex-col gap-4">
-    <div class="bg-slate-900/80 border border-slate-800 rounded-[1.5rem] p-5 flex flex-col gap-6 shadow-2xl h-full overflow-y-auto">
+  <!-- RIGHT AREA: CONTROLS -->
+  <div class="md:col-span-4 lg:col-span-3 flex flex-col gap-4 h-full">
+    <div class="bg-slate-900/80 border border-slate-800 rounded-[1.5rem] p-5 flex flex-col gap-8 shadow-2xl h-full overflow-y-auto">
       <h3 class="text-base font-black text-white border-b border-slate-700 pb-3 uppercase tracking-tighter">Controls</h3>
       
       <!-- Distance Slider -->
@@ -121,19 +120,18 @@
       <!-- Temperature Slider -->
       <div class="space-y-3">
         <div class="flex justify-between items-center">
-          <label class="text-xs font-black text-emerald-400 uppercase">Airport Temp</label>
+          <label class="text-xs font-black text-temp-label uppercase tracking-widest">Airport Temp</label>
           <span id="temp-display" class="font-mono text-xl font-black text-white">15°C</span>
         </div>
         <input type="range" id="temp-slider" min="-20" max="45" step="1" value="15" class="w-full" />
-        <button onclick="resetTemp()" class="w-full py-2.5 text-[10px] bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 border border-slate-600 font-black transition uppercase">Reset ISA</button>
       </div>
 
       <!-- PAPI Mode Switch -->
       <div class="space-y-2">
         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">PAPI Spec</label>
         <div class="flex flex-col gap-2">
-          <button id="btn-general" onclick="setPapiMode('general')" class="w-full py-2.5 rounded-xl text-[10px] font-black border transition btn-inactive">STANDARD 3.00°</button>
-          <button id="btn-hnd" onclick="setPapiMode('hnd')" class="w-full py-2.5 rounded-xl text-[10px] font-black border transition btn-active-indigo">HANEDA 3.25°</button>
+          <button id="btn-general" onclick="setPapiMode('general')" class="w-full py-3 rounded-xl text-[10px] font-black border transition btn-inactive">STANDARD 3.00°</button>
+          <button id="btn-hnd" onclick="setPapiMode('hnd')" class="w-full py-3 rounded-xl text-[10px] font-black border transition btn-active-indigo">HANEDA 3.25°</button>
         </div>
       </div>
 
@@ -150,7 +148,6 @@
 </main>
 
 <script>
-// 初期状態: 羽田3.25°、Eye Height 10ftをデフォルト
 const state = { papiMode: 'hnd', temp: 15, zoom: 12, distNm: 3.0, eyeHeight: 10 };
 const ISA_TEMP = 15;
 const ABS_ZERO = -273.15;
@@ -174,30 +171,22 @@ function updateAll() {
   const true302 = calcTrueAngle(3.02, t);
   const true325 = calcTrueAngle(3.25, t);
 
-  // 各パス上の機体高度
   const acH302 = dFt * Math.tan(true302 * Math.PI / 180);
   const acH325 = dFt * Math.tan(true325 * Math.PI / 180);
   
-  // パイロット視点角度の計算
   const pAng302 = Math.atan((acH302 + eh) / dFt) * 180 / Math.PI;
   const pAng325 = Math.atan((acH325 + eh) / dFt) * 180 / Math.PI;
 
-  // UI更新
   document.getElementById('temp-display').textContent = `${t}°C`;
   document.getElementById('eye-height-display').textContent = `${eh} ft`;
   document.getElementById('dist-display').textContent = dNm.toFixed(1);
   document.getElementById('temp-dev-badge').textContent = `Δ${(t-ISA_TEMP)>=0?'+':''}${(t-ISA_TEMP).toFixed(1)}°C`;
   document.getElementById('zoom-display').textContent = `${state.zoom}x`;
   
-  document.getElementById('ang-302-display').textContent = `${pAng302.toFixed(2)}°`;
-  document.getElementById('ang-325-display').textContent = `${pAng325.toFixed(2)}°`;
-
   const bounds = PAPI_BOUNDS[state.papiMode];
-  
   renderPapi('papi-302-container', 'label-302', pAng302, bounds);
   renderPapi('papi-325-container', 'label-325', pAng325, bounds);
 
-  // 統計表示
   const nom302 = dFt * Math.tan(3.02 * Math.PI / 180);
   const nom325 = dFt * Math.tan(3.25 * Math.PI / 180);
   updateStat('true-302', 'diff-302', Math.round(acH302), Math.round(acH302 - nom302));
@@ -210,7 +199,7 @@ function updateStat(idVal, idDiff, target, diff) {
   document.getElementById(idVal).textContent = `${target} ft`;
   const diffEl = document.getElementById(idDiff);
   diffEl.textContent = `${diff >= 0 ? '+' : ''}${diff} ft`;
-  diffEl.className = `text-lg font-black font-mono ${diff < -30 ? 'text-rose-500' : diff > 30 ? 'text-emerald-500' : 'text-slate-400'}`;
+  diffEl.className = `text-[10px] font-black font-mono ${diff < -30 ? 'text-rose-500' : diff > 30 ? 'text-emerald-500' : 'text-slate-400'}`;
 }
 
 function renderPapi(containerId, labelId, angle, bounds) {
@@ -219,7 +208,7 @@ function renderPapi(containerId, labelId, angle, bounds) {
   const colors = bounds.map(b => angle >= b ? 'W' : 'R');
   colors.forEach(c => {
     const div = document.createElement('div');
-    div.className = `w-7 h-7 rounded-full ${c === 'W' ? 'papi-light-white' : 'papi-light-red'}`;
+    div.className = `w-5 h-5 rounded-full ${c === 'W' ? 'papi-light-white' : 'papi-light-red'}`;
     container.appendChild(div);
   });
   const redCount = colors.filter(c => c === 'R').length;
@@ -232,7 +221,7 @@ function renderPapi(containerId, labelId, angle, bounds) {
     { txt: 'TOO LOW', cls: 'border-rose-500 text-rose-400' }
   ][redCount];
   label.textContent = info.txt;
-  label.className = `text-[7px] font-black px-2 py-0.5 rounded-full border bg-slate-950 ${info.cls}`;
+  label.className = `text-[6px] font-black px-2 py-0.5 rounded-full border bg-slate-950 ${info.cls}`;
 }
 
 function drawSVG(t302, t325, bounds, ach, eh, dNm) {
@@ -269,7 +258,6 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
   unit.setAttribute("fill", "#f1f5f9");
   svg.appendChild(unit);
 
-  // グリッド
   for(let i=1; i<=5; i++) {
     const x = OX + i * 140;
     const l = document.createElementNS(ns, "line");
@@ -282,19 +270,44 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
     svg.appendChild(t);
   }
 
-  // パス描画
-  const drawPath = (a, col, isThick) => {
-    const p = getCoords(a, 5.2);
-    const l = document.createElementNS(ns, "line");
-    l.setAttribute("x1", OX); l.setAttribute("y1", OY); l.setAttribute("x2", p.x); l.setAttribute("y2", p.y);
-    l.setAttribute("stroke", col); l.setAttribute("stroke-width", isThick ? 3 : 1);
-    if(!isThick) l.setAttribute("stroke-dasharray", "5,3");
-    svg.appendChild(l);
+  // 動的なパス描画関数 (色分け)
+  const drawDynamicPath = (a, isThick) => {
+    const segments = 50; // 分割数
+    const maxNm = 5.2;
+    
+    for (let i = 0; i < segments; i++) {
+      const nmStart = (maxNm / segments) * i;
+      const nmEnd = (maxNm / segments) * (i + 1);
+      const pStart = getCoords(a, nmStart);
+      const pEnd = getCoords(a, nmEnd);
+      
+      // 色判定
+      let color = "#10b981"; // Green (On Path)
+      if (a > bounds[1]) color = "#ffffff"; // White (High)
+      if (a < bounds[2]) color = "#ef4444"; // Red (Low)
+      
+      const l = document.createElementNS(ns, "line");
+      l.setAttribute("x1", pStart.x); l.setAttribute("y1", pStart.y);
+      l.setAttribute("x2", pEnd.x); l.setAttribute("y2", pEnd.y);
+      l.setAttribute("stroke", color);
+      l.setAttribute("stroke-width", isThick ? 3 : 1);
+      if(!isThick) l.setAttribute("stroke-dasharray", "5,3");
+      svg.appendChild(l);
+    }
   };
 
-  bounds.forEach(b => drawPath(b, "#334155", false));
-  drawPath(t302, "#10b981", true);
-  drawPath(t325, "#6366f1", true);
+  // 境界線 (背景)
+  bounds.forEach(b => {
+    const p = getCoords(b, 5.2);
+    const l = document.createElementNS(ns, "line");
+    l.setAttribute("x1", OX); l.setAttribute("y1", OY); l.setAttribute("x2", p.x); l.setAttribute("y2", p.y);
+    l.setAttribute("stroke", "#334155"); l.setAttribute("stroke-width", 0.8); l.setAttribute("stroke-dasharray", "5,3");
+    svg.appendChild(l);
+  });
+
+  // 実パスの描画
+  drawDynamicPath(t302, true);
+  drawDynamicPath(t325, true);
 
   // 航空機アイコン
   const acPos = getCoords(t325, dNm);
@@ -321,14 +334,8 @@ function drawSVG(t302, t325, bounds, ach, eh, dNm) {
 
 function setPapiMode(m) {
   state.papiMode = m;
-  document.getElementById('btn-general').className = `w-full py-2.5 rounded-xl text-[10px] font-black border transition ${m==='general'?'btn-active-indigo':'btn-inactive'}`;
-  document.getElementById('btn-hnd').className = `w-full py-2.5 rounded-xl text-[10px] font-black border transition ${m==='hnd'?'btn-active-indigo':'btn-inactive'}`;
-  updateAll();
-}
-
-function resetTemp() {
-  state.temp = 15;
-  document.getElementById('temp-slider').value = 15;
+  document.getElementById('btn-general').className = `w-full py-3 rounded-xl text-[10px] font-black border transition ${m==='general'?'btn-active-indigo':'btn-inactive'}`;
+  document.getElementById('btn-hnd').className = `w-full py-3 rounded-xl text-[10px] font-black border transition ${m==='hnd'?'btn-active-indigo':'btn-inactive'}`;
   updateAll();
 }
 
@@ -337,7 +344,6 @@ document.getElementById('dist-slider').oninput = (e) => { state.distNm = parseFl
 document.getElementById('eye-height-slider').oninput = (e) => { state.eyeHeight = parseInt(e.target.value); updateAll(); };
 document.getElementById('zoom-slider').oninput = (e) => { state.zoom = parseInt(e.target.value); updateAll(); };
 
-// 初期実行
 updateAll();
 </script>
 </body>
